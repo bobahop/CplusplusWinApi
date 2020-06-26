@@ -21,7 +21,7 @@ enum class BtnId : int
     Btn2 = 2,
 };
 
-int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns)
+int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns = MB_OK)
 {
     return MessageBoxW(hWnd, msg, title, btns | MB_ICONEXCLAMATION);
 }
@@ -29,7 +29,7 @@ int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns)
 void show_error_msg(HWND hwnd, HRESULT hr, LPCWSTR title){
     _com_error err(hr);
     LPCTSTR errMsg = err.ErrorMessage();
-    msg_box(hwnd, (LPCTSTR) errMsg, title, MB_OK);
+    msg_box(hwnd, (LPCTSTR) errMsg, title);
 }
 
 void cleanup_file_open(IFileOpenDialog *pFileOpen){
@@ -81,7 +81,7 @@ void show_file_open(HWND hWnd)
     // Display the file name to the user.
     if (SUCCEEDED(hr))
     {
-        msg_box(hWnd, pszFilePath, L"File Path", MB_OK);
+        msg_box(hWnd, pszFilePath, L"File Path");
         CoTaskMemFree(pszFilePath);
     }
     pItem->Release();
@@ -91,7 +91,7 @@ void show_file_open(HWND hWnd)
 
 void btn1_click(HWND hWnd)
 {
-    msg_box(hWnd, L"You touched me!", L"Clicked button 1!", MB_OK);
+    msg_box(hWnd, L"You touched me!", L"Clicked button 1!");
 }
 
 void btn2_click(HWND hWnd)
