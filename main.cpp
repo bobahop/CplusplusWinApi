@@ -2,12 +2,13 @@
 #define UNICODE
 #endif
 
-#include <windows.h>
+#include <combaseapi.h>
+#include <comdef.h>
 #include <shobjidl.h>
 #include <stdio.h>
-#include <winuser.h>
-#include <combaseapi.h>
+#include <windows.h>
 #include <wingdi.h>
+#include <winuser.h>
 
 struct BobWindow
 {
@@ -20,51 +21,72 @@ enum class BtnId : int
     Btn2 = 2,
 };
 
+int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns)
+{
+    return MessageBoxW(hWnd, msg, title, btns | MB_ICONEXCLAMATION);
+}
+
+void show_error_msg(HWND hwnd, HRESULT hr, LPCWSTR title){
+    _com_error err(hr);
+    LPCTSTR errMsg = err.ErrorMessage();
+    msg_box(hwnd, (LPCTSTR) errMsg, title, MB_OK);
+}
+
+void cleanup_file_open(IFileOpenDialog *pFileOpen){
+        pFileOpen->Release();
+        CoUninitialize();
+}
+
 void show_file_open(HWND hWnd)
 {
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED |
                                           COINIT_DISABLE_OLE1DDE);
+
+    if (FAILED(hr)) {
+        show_error_msg(hWnd, hr, L"CoInitialize Failed");
+        return;
+    }
+    
+    IFileOpenDialog *pFileOpen;
+
+    // Create the FileOpenDialog object.
+    hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+                            IID_IFileOpenDialog, reinterpret_cast<void **>(&pFileOpen));
+
+    if (FAILED(hr)){
+        show_error_msg(hWnd, hr, L"CoCreateInstance Failed");
+        CoUninitialize();
+        return;
+    }
+
+    // Show the Open dialog box.
+    hr = pFileOpen->Show(NULL);
+
+    if (FAILED(hr)){
+        //user could have cancelled
+        return cleanup_file_open(pFileOpen);
+    }
+
+    // Get the file name from the dialog box.
+    IShellItem *pItem;
+    hr = pFileOpen->GetResult(&pItem);
+    if (FAILED(hr)){
+        show_error_msg(hWnd, hr, L"FileOpen GetResult Failed");
+        return cleanup_file_open(pFileOpen);
+    }    
+
+    PWSTR pszFilePath;
+    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+    // Display the file name to the user.
     if (SUCCEEDED(hr))
     {
-        IFileOpenDialog *pFileOpen;
-
-        // Create the FileOpenDialog object.
-        hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
-                              IID_IFileOpenDialog, reinterpret_cast<void **>(&pFileOpen));
-
-        if (SUCCEEDED(hr))
-        {
-            // Show the Open dialog box.
-            hr = pFileOpen->Show(NULL);
-
-            // Get the file name from the dialog box.
-            if (SUCCEEDED(hr))
-            {
-                IShellItem *pItem;
-                hr = pFileOpen->GetResult(&pItem);
-                if (SUCCEEDED(hr))
-                {
-                    PWSTR pszFilePath;
-                    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-
-                    // Display the file name to the user.
-                    if (SUCCEEDED(hr))
-                    {
-                        MessageBox(NULL, pszFilePath, L"File Path", MB_OK);
-                        CoTaskMemFree(pszFilePath);
-                    }
-                    pItem->Release();
-                }
-            }
-            pFileOpen->Release();
-        }
-        CoUninitialize();
+        msg_box(hWnd, pszFilePath, L"File Path", MB_OK);
+        CoTaskMemFree(pszFilePath);
     }
-}
+    pItem->Release();
 
-int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns)
-{
-    return MessageBoxW(hWnd, msg, title, btns);
+    return cleanup_file_open(pFileOpen);
 }
 
 void btn1_click(HWND hWnd)
@@ -116,60 +138,6 @@ RECT get_rect()
         125, //right
         25,  //bottom
     };
-}
-
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
-{
-    // Register the window class.
-    const wchar_t CLASS_NAME[] = L"Sample Window Class";
-
-    WNDCLASS wc = {};
-
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
-
-    RegisterClass(&wc);
-
-    BobWindow mydata = {0};
-    BobWindow *dataptr = &mydata;
-
-    // Create the window.
-
-    HWND hwnd = CreateWindowEx(
-        0,                           // Optional window styles.
-        CLASS_NAME,                  // Window class
-        L"Learn to Program Windows", // Window text
-        WS_OVERLAPPEDWINDOW,         // Window style
-
-        // Size and position
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-
-        NULL,      // Parent window
-        NULL,      // Menu
-        hInstance, // Instance handle
-        dataptr    // Additional application data
-    );
-
-    if (hwnd == NULL)
-    {
-        return 0;
-    }
-
-    ShowWindow(hwnd, nCmdShow);
-
-    // Run the message loop.
-
-    MSG msg = {};
-    while (GetMessage(&msg, NULL, 0, 0))
-    {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-
-    return 0;
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -265,3 +233,60 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
+HWND create_window(HINSTANCE hInstance, LPCWSTR class_name, LPCWSTR title, BobWindow *dataptr){
+// Register the window class.
+
+    WNDCLASS wc = {};
+
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = class_name;
+
+    RegisterClass(&wc);
+
+    // Create the window.
+
+    return CreateWindowEx(
+        0,                           // Optional window styles.
+        class_name,                  // Window class
+        title, // Window text
+        WS_OVERLAPPEDWINDOW,         // Window style
+
+        // Size and position
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+
+        NULL,      // Parent window
+        NULL,      // Menu
+        hInstance, // Instance handle
+        dataptr    // Additional application data
+    );
+
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
+{
+    BobWindow mydata = {0};
+    BobWindow *dataptr = &mydata;
+
+    auto hwnd = create_window(hInstance, L"Sample Window Class",L"Learn to Program Windows", dataptr);
+
+    if (hwnd == NULL)
+    {
+        return 0;
+    }
+
+    ShowWindow(hwnd, nCmdShow);
+
+    // Run the message loop.
+
+    MSG msg = {};
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    return 0;
+}
+
