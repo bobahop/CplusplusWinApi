@@ -140,7 +140,7 @@ RECT get_rect()
     };
 }
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
@@ -197,17 +197,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         LONG_PTR ptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
         BobWindow *pData = reinterpret_cast<BobWindow *>(ptr);
-        int inWindow = pData->inWindow;
-        if (inWindow == 1)
+        if (pData->inWindow == 1)
         {
             return 0;
         }
         pData->inWindow = 1;
-        TRACKMOUSEEVENT tme;
-        tme.cbSize = sizeof(tme);
-        tme.hwndTrack = hwnd;
-        tme.dwFlags = TME_LEAVE;
-        tme.dwHoverTime = 1;
+        TRACKMOUSEEVENT tme {sizeof(tme), TME_LEAVE, hwnd, 1}; //cbSize, dwFlags, hwndTrack, dwHoverTime
         TrackMouseEvent(&tme);
         SetCursor(LoadCursorW(NULL, IDC_ARROW));
         InvalidateRect(hwnd, &get_rect(), TRUE);
@@ -239,7 +234,7 @@ HWND create_window(HINSTANCE hInstance, LPCWSTR class_name, LPCWSTR title, BobWi
 
     WNDCLASS wc = {};
 
-    wc.lpfnWndProc = WindowProc;
+    wc.lpfnWndProc = window_proc;
     wc.hInstance = hInstance;
     wc.lpszClassName = class_name;
 
