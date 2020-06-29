@@ -28,7 +28,7 @@ int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns = MB_OK)
 
 void show_error_msg(HWND hwnd, HRESULT hr, LPCWSTR title){
     _com_error err(hr);
-    LPCTSTR errMsg = err.ErrorMessage();
+    LPCTSTR errMsg {err.ErrorMessage()};
     msg_box(hwnd, (LPCTSTR) errMsg, title);
 }
 
@@ -39,8 +39,8 @@ void cleanup_file_open(IFileOpenDialog *pFileOpen){
 
 void show_file_open(HWND hWnd)
 {
-    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED |
-                                          COINIT_DISABLE_OLE1DDE);
+    HRESULT hr {CoInitializeEx(NULL, COINIT_APARTMENTTHREADED |
+                                          COINIT_DISABLE_OLE1DDE)};
 
     if (FAILED(hr)) {
         show_error_msg(hWnd, hr, L"CoInitialize Failed");
@@ -118,7 +118,7 @@ void create_button(LPCWSTR btn_name, BtnId id, int x, int y, int w, int h, HWND 
 
 bool is_mouse_in(HWND hWnd)
 {
-    auto bw = (BobWindow *)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
+    auto bw {reinterpret_cast<BobWindow *>(GetWindowLongPtrW(hWnd, GWLP_USERDATA))};
     switch (bw->inWindow)
     {
     case 0:
@@ -154,7 +154,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_COMMAND:
     {
-        auto id = (BtnId)LOWORD(wParam);
+        auto id {(BtnId)LOWORD(wParam)};
         switch (id)
         {
         case BtnId::Btn1:
@@ -172,10 +172,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_CREATE:
     {
-        CREATESTRUCT *pCreate = reinterpret_cast<CREATESTRUCT *>(lParam);
-        BobWindow *pData = reinterpret_cast<BobWindow *>(pCreate->lpCreateParams);
-        int inWindow = pData->inWindow;
-        LONG_PTR result = SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pData);
+        CREATESTRUCT *pCreate {reinterpret_cast<CREATESTRUCT *>(lParam)};
+        BobWindow *pData = static_cast<BobWindow *>(pCreate->lpCreateParams);
+        LONG_PTR result {SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pData)};
         create_button((LPCWSTR)L"button", BtnId::Btn1, 50, 100, 100, 25, hwnd);
         create_button((LPCWSTR)L"button2", BtnId::Btn2, 250, 100, 100, 25, hwnd);
         return 0;
@@ -185,7 +184,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     case WM_MOUSELEAVE:
     {
-        LONG_PTR ptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        LONG_PTR ptr {GetWindowLongPtr(hwnd, GWLP_USERDATA)};
         BobWindow *pData = reinterpret_cast<BobWindow *>(ptr);
         pData->inWindow = 0;
         InvalidateRect(hwnd, &get_rect(), TRUE);
@@ -195,7 +194,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_MOUSEMOVE:
     {
-        LONG_PTR ptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        LONG_PTR ptr {GetWindowLongPtr(hwnd, GWLP_USERDATA)};
         BobWindow *pData = reinterpret_cast<BobWindow *>(ptr);
         if (pData->inWindow == 1)
         {
@@ -232,7 +231,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 HWND create_window(HINSTANCE hInstance, LPCWSTR class_name, LPCWSTR title, BobWindow *dataptr){
 // Register the window class.
 
-    WNDCLASS wc = {};
+    WNDCLASS wc {};
 
     wc.lpfnWndProc = window_proc;
     wc.hInstance = hInstance;
@@ -261,7 +260,7 @@ HWND create_window(HINSTANCE hInstance, LPCWSTR class_name, LPCWSTR title, BobWi
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
 {
-    BobWindow mydata = {0};
+    BobWindow mydata {0};
     BobWindow *dataptr = &mydata;
 
     auto hwnd = create_window(hInstance, L"Sample Window Class",L"Learn to Program Windows", dataptr);
@@ -275,7 +274,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 
     // Run the message loop.
 
-    MSG msg = {};
+    MSG msg {};
     while (GetMessage(&msg, NULL, 0, 0))
     {
         TranslateMessage(&msg);
