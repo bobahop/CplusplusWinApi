@@ -2,8 +2,15 @@
 #define UNICODE
 #endif
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#include <algorithm>
+#include <cmath>
 #include <combaseapi.h>
 #include <comdef.h>
+#include <new>
 #include <shobjidl.h>
 #include <stdio.h>
 #include <windows.h>
@@ -17,6 +24,7 @@ struct BobWindow
 
 static HWND txt1;
 static HWND txt2;
+static HWND txtEpsilon;
 
 enum class Ctrl : int
 {
@@ -24,7 +32,8 @@ enum class Ctrl : int
     Id2 = 2,
     Id3 = 3,
     Id4 = 4,
-    Id5 = 5
+    Id5 = 5,
+    Id6 = 6
 };
 
 int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns = MB_OK)
@@ -41,6 +50,15 @@ void show_error_msg(HWND hwnd, HRESULT hr, LPCWSTR title){
 void cleanup_file_open(IFileOpenDialog *pFileOpen){
         pFileOpen->Release();
         CoUninitialize();
+}
+
+double get_txt_dbl(HWND hwnd){
+    int len {GetWindowTextLengthW(hwnd) + 1};
+    wchar_t *  buf = new (std::nothrow) wchar_t [len];
+    GetWindowTextW(hwnd, buf, len);
+    auto txtdouble {_wtof(buf)};
+    delete[] buf;
+    return txtdouble;
 }
 
 void show_file_open(HWND hWnd)
@@ -96,11 +114,14 @@ void show_file_open(HWND hWnd)
 }
 
 void converged(HWND hwnd){
-    //TODO: get txt values, convert to double, and see if they're close enough
-    int len {GetWindowTextLengthA(txt1)};
-    // GetWindowTextA(txt1, buf, len);
-    len = GetWindowTextLengthA(txt2);
-    // GetWindowTextA(txt2, buf2, len);
+    auto double1 {get_txt_dbl(txt1)};
+    auto double2 {get_txt_dbl(txt2)};
+    double test_val = std::max(std::abs(double1),std::abs(double2));
+    auto epsilon {get_txt_dbl(txtEpsilon) * test_val};
+    auto is_converged = std::abs(double1 - double2) <= epsilon;
+    wchar_t msg[20];
+    swprintf_s(msg, L"Is converged: %d", is_converged);
+    msg_box(hwnd, msg, L"Close enough?");
 }
 
 void btn1_click(HWND hWnd)
@@ -223,8 +244,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         CREATESTRUCT *pCreate {reinterpret_cast<CREATESTRUCT *>(lParam)};
         BobWindow *pData = static_cast<BobWindow *>(pCreate->lpCreateParams);
         LONG_PTR result {SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pData)};
-        txt1 = create_txtbox((LPCWSTR)L"txt1", Ctrl::Id3, 125, 100, 100, 25, hwnd);
-        txt2 = create_txtbox((LPCWSTR)L"txt2", Ctrl::Id4, 375, 100, 100, 25, hwnd);
+        txt1 = create_txtbox((LPCWSTR)L"1.01", Ctrl::Id3, 115, 100, 100, 25, hwnd);
+        txt2 = create_txtbox((LPCWSTR)L"1.02", Ctrl::Id4, 315, 100, 100, 25, hwnd);
+        txtEpsilon = create_txtbox((LPCWSTR)L".001", Ctrl::Id6, 505, 100, 100, 25, hwnd);
         create_button((LPCWSTR)L"button1", Ctrl::Id1, 50, 200, 100, 25, hwnd);
         create_button((LPCWSTR)L"button2", Ctrl::Id2, 200, 200, 100, 25, hwnd);
         create_button((LPCWSTR)L"converge", Ctrl::Id5, 350, 200, 100, 25, hwnd);
@@ -268,7 +290,8 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         swprintf_s(mouse_status, L"mouse is in: %d", is_mouse_in(hwnd));
         draw_label(mouse_status, 5, 5, hdc);
         draw_label(L"double 1:", 50, 100, hdc);
-        draw_label(L"double 2:", 300, 100, hdc);
+        draw_label(L"double 2:", 250, 100, hdc);
+        draw_label(L"epsilon:", 450, 100, hdc);
         EndPaint(hwnd, &ps);
     }
         return 0;
