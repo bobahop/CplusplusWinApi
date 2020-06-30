@@ -2,10 +2,6 @@
 #define UNICODE
 #endif
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
 #include <algorithm>
 #include <cmath>
 #include <combaseapi.h>
@@ -116,7 +112,7 @@ void show_file_open(HWND hWnd)
 void converged(HWND hwnd){
     auto double1 {get_txt_dbl(txt1)};
     auto double2 {get_txt_dbl(txt2)};
-    double test_val = std::max(std::abs(double1),std::abs(double2));
+    double test_val = (std::max)(std::abs(double1),std::abs(double2));
     auto epsilon {get_txt_dbl(txtEpsilon) * test_val};
     auto is_converged = std::abs(double1 - double2) <= epsilon;
     wchar_t msg[20];
