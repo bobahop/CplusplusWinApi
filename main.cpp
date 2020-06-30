@@ -15,10 +15,16 @@ struct BobWindow
     int inWindow;
 };
 
-enum class BtnId : int
+static HWND txt1;
+static HWND txt2;
+
+enum class Ctrl : int
 {
-    Btn1 = 1,
-    Btn2 = 2,
+    Id1 = 1,
+    Id2 = 2,
+    Id3 = 3,
+    Id4 = 4,
+    Id5 = 5
 };
 
 int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns = MB_OK)
@@ -89,6 +95,14 @@ void show_file_open(HWND hWnd)
     return cleanup_file_open(pFileOpen);
 }
 
+void converged(HWND hwnd){
+    //TODO: get txt values, convert to double, and see if they're close enough
+    int len {GetWindowTextLengthA(txt1)};
+    // GetWindowTextA(txt1, buf, len);
+    len = GetWindowTextLengthA(txt2);
+    // GetWindowTextA(txt2, buf2, len);
+}
+
 void btn1_click(HWND hWnd)
 {
     msg_box(hWnd, L"You touched me!", L"Clicked button 1!");
@@ -99,12 +113,16 @@ void btn2_click(HWND hWnd)
     show_file_open(hWnd);
 }
 
-void create_button(LPCWSTR btn_name, BtnId id, int x, int y, int w, int h, HWND parent)
+void btn5_click(HWND hWnd){
+    converged(hWnd);
+}
+
+void create_button(LPCWSTR btn_text, Ctrl id, int x, int y, int w, int h, HWND parent)
 {
     CreateWindowExW(
         0,
         L"BUTTON",
-        btn_name,
+        btn_text,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
         x,
         y,
@@ -114,6 +132,31 @@ void create_button(LPCWSTR btn_name, BtnId id, int x, int y, int w, int h, HWND 
         (HMENU)id,
         GetModuleHandleW(nullptr),
         nullptr);
+}
+
+HWND create_txtbox(LPCWSTR txt_name, Ctrl id, int x, int y, int w, int h, HWND parent){
+    return CreateWindowExW(
+        0,
+        L"EDIT",
+        txt_name,
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+        x,
+        y,
+        w,
+        h,
+        parent,
+        (HMENU)id,
+        GetModuleHandleW(nullptr),
+        nullptr);
+}
+
+void draw_label(LPCWSTR label_text, int x, int y, HDC hdc){
+        TextOutW(
+            hdc,
+            x,
+            y,
+            label_text,
+            wcslen(label_text));
 }
 
 bool is_mouse_in(HWND hWnd)
@@ -154,20 +197,25 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_COMMAND:
     {
-        auto id {(BtnId)LOWORD(wParam)};
+        auto id {(Ctrl)LOWORD(wParam)};
         switch (id)
         {
-        case BtnId::Btn1:
+        case Ctrl::Id1:
         {
             btn1_click(hwnd);
             break;
         }
-        case BtnId::Btn2:
+        case Ctrl::Id2:
         {
             btn2_click(hwnd);
             break;
         }
+        case Ctrl::Id5:
+        {
+            btn5_click(hwnd);
         }
+        }
+        //ignore 3 and 4, which are textboxes
         return 0;
     }
     case WM_CREATE:
@@ -175,8 +223,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         CREATESTRUCT *pCreate {reinterpret_cast<CREATESTRUCT *>(lParam)};
         BobWindow *pData = static_cast<BobWindow *>(pCreate->lpCreateParams);
         LONG_PTR result {SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pData)};
-        create_button((LPCWSTR)L"button", BtnId::Btn1, 50, 100, 100, 25, hwnd);
-        create_button((LPCWSTR)L"button2", BtnId::Btn2, 250, 100, 100, 25, hwnd);
+        txt1 = create_txtbox((LPCWSTR)L"txt1", Ctrl::Id3, 125, 100, 100, 25, hwnd);
+        txt2 = create_txtbox((LPCWSTR)L"txt2", Ctrl::Id4, 375, 100, 100, 25, hwnd);
+        create_button((LPCWSTR)L"button1", Ctrl::Id1, 50, 200, 100, 25, hwnd);
+        create_button((LPCWSTR)L"button2", Ctrl::Id2, 200, 200, 100, 25, hwnd);
+        create_button((LPCWSTR)L"converge", Ctrl::Id5, 350, 200, 100, 25, hwnd);
         return 0;
     }
     case WM_DESTROY:
@@ -213,14 +264,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hwnd, &ps);
         FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-        char mouse_status[15];
-        sprintf_s(mouse_status, "mouse is in: %d", is_mouse_in(hwnd));
-        TextOutA(
-            hdc,
-            5,
-            5,
-            mouse_status,
-            sizeof(mouse_status));
+        wchar_t mouse_status[15];
+        swprintf_s(mouse_status, L"mouse is in: %d", is_mouse_in(hwnd));
+        draw_label(mouse_status, 5, 5, hdc);
+        draw_label(L"double 1:", 50, 100, hdc);
+        draw_label(L"double 2:", 300, 100, hdc);
         EndPaint(hwnd, &ps);
     }
         return 0;
