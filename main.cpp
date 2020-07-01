@@ -118,7 +118,7 @@ void converged(HWND hwnd){
     auto double2 {get_txt_dbl(pData->txt2)};
     auto test_val {(std::max)(std::abs(double1),std::abs(double2))};
     auto epsilon {get_txt_dbl(pData->txtEpsilon) * test_val};
-    auto is_converged = std::abs(double1 - double2) <= epsilon;
+    auto is_converged {std::abs(double1 - double2) <= epsilon};
     wchar_t msg[20];
     swprintf_s(msg, L"Is converged: %d", is_converged);
     msg_box(hwnd, msg, L"Close enough?");
@@ -182,8 +182,7 @@ void draw_label(LPCWSTR label_text, int x, int y, HDC hdc){
 
 bool is_mouse_in(HWND hWnd)
 {
-    auto pData {get_bobwindow(hWnd)};
-    switch (pData->inWindow)
+    switch ((get_bobwindow(hWnd))->inWindow)
     {
     case 0:
         return false;
@@ -257,8 +256,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     case WM_MOUSELEAVE:
     {
-        auto pData {get_bobwindow(hwnd)};
-        pData->inWindow = 0;
+        (get_bobwindow(hwnd))->inWindow = 0;
         InvalidateRect(hwnd, &get_rect(), TRUE);
         UpdateWindow(hwnd);
 
