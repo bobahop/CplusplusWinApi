@@ -16,11 +16,10 @@
 struct BobWindow
 {
     int inWindow;
+    HWND txt1;
+    HWND txt2;
+    HWND txtEpsilon;
 };
-
-static HWND txt1;
-static HWND txt2;
-static HWND txtEpsilon;
 
 enum class Ctrl : int
 {
@@ -35,6 +34,10 @@ enum class Ctrl : int
 int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns = MB_OK)
 {
     return MessageBoxW(hWnd, msg, title, btns | MB_ICONEXCLAMATION);
+}
+
+BobWindow * get_bobwindow (HWND hwnd){
+    return reinterpret_cast<BobWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 }
 
 void show_error_msg(HWND hwnd, HRESULT hr, LPCWSTR title){
@@ -110,10 +113,11 @@ void show_file_open(HWND hWnd)
 }
 
 void converged(HWND hwnd){
-    auto double1 {get_txt_dbl(txt1)};
-    auto double2 {get_txt_dbl(txt2)};
-    double test_val = (std::max)(std::abs(double1),std::abs(double2));
-    auto epsilon {get_txt_dbl(txtEpsilon) * test_val};
+    auto pData  {get_bobwindow(hwnd)};
+    auto double1 {get_txt_dbl(pData->txt1)};
+    auto double2 {get_txt_dbl(pData->txt2)};
+    auto test_val {(std::max)(std::abs(double1),std::abs(double2))};
+    auto epsilon {get_txt_dbl(pData->txtEpsilon) * test_val};
     auto is_converged = std::abs(double1 - double2) <= epsilon;
     wchar_t msg[20];
     swprintf_s(msg, L"Is converged: %d", is_converged);
@@ -178,8 +182,8 @@ void draw_label(LPCWSTR label_text, int x, int y, HDC hdc){
 
 bool is_mouse_in(HWND hWnd)
 {
-    auto bw {reinterpret_cast<BobWindow *>(GetWindowLongPtrW(hWnd, GWLP_USERDATA))};
-    switch (bw->inWindow)
+    auto pData {get_bobwindow(hWnd)};
+    switch (pData->inWindow)
     {
     case 0:
         return false;
@@ -240,9 +244,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         CREATESTRUCT *pCreate {reinterpret_cast<CREATESTRUCT *>(lParam)};
         BobWindow *pData = static_cast<BobWindow *>(pCreate->lpCreateParams);
         LONG_PTR result {SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pData)};
-        txt1 = create_txtbox((LPCWSTR)L"1.01", Ctrl::Id3, 115, 100, 100, 25, hwnd);
-        txt2 = create_txtbox((LPCWSTR)L"1.02", Ctrl::Id4, 315, 100, 100, 25, hwnd);
-        txtEpsilon = create_txtbox((LPCWSTR)L".001", Ctrl::Id6, 505, 100, 100, 25, hwnd);
+        pData->txt1 = create_txtbox((LPCWSTR)L"1.01", Ctrl::Id3, 115, 100, 100, 25, hwnd);
+        pData->txt2 = create_txtbox((LPCWSTR)L"1.02", Ctrl::Id4, 315, 100, 100, 25, hwnd);
+        pData->txtEpsilon = create_txtbox((LPCWSTR)L".001", Ctrl::Id6, 505, 100, 100, 25, hwnd);
         create_button((LPCWSTR)L"button1", Ctrl::Id1, 50, 200, 100, 25, hwnd);
         create_button((LPCWSTR)L"button2", Ctrl::Id2, 200, 200, 100, 25, hwnd);
         create_button((LPCWSTR)L"converge", Ctrl::Id5, 350, 200, 100, 25, hwnd);
@@ -253,8 +257,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     case WM_MOUSELEAVE:
     {
-        LONG_PTR ptr {GetWindowLongPtr(hwnd, GWLP_USERDATA)};
-        BobWindow *pData = reinterpret_cast<BobWindow *>(ptr);
+        auto pData {get_bobwindow(hwnd)};
         pData->inWindow = 0;
         InvalidateRect(hwnd, &get_rect(), TRUE);
         UpdateWindow(hwnd);
@@ -263,8 +266,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_MOUSEMOVE:
     {
-        LONG_PTR ptr {GetWindowLongPtr(hwnd, GWLP_USERDATA)};
-        BobWindow *pData = reinterpret_cast<BobWindow *>(ptr);
+        auto pData {get_bobwindow(hwnd)};
         if (pData->inWindow == 1)
         {
             return 0;
@@ -327,7 +329,7 @@ HWND create_window(HINSTANCE hInstance, LPCWSTR class_name, LPCWSTR title, BobWi
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
 {
-    BobWindow mydata {0};
+    BobWindow mydata {0, nullptr, nullptr, nullptr};
     BobWindow *dataptr = &mydata;
 
     auto hwnd = create_window(hInstance, L"Sample Window Class",L"Learn to Program Windows", dataptr);
