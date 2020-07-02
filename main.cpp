@@ -36,8 +36,8 @@ int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns = MB_OK)
     return MessageBoxW(hWnd, msg, title, btns | MB_ICONEXCLAMATION);
 }
 
-BobWindow * get_bobwindow (HWND hwnd){
-    return reinterpret_cast<BobWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+BobWindow* get_bobwindow (HWND hwnd){
+    return reinterpret_cast<BobWindow*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 }
 
 void show_error_msg(HWND hwnd, HRESULT hr, LPCWSTR title){
@@ -53,7 +53,7 @@ void cleanup_file_open(IFileOpenDialog *pFileOpen){
 
 double get_txt_dbl(HWND hwnd){
     int len {GetWindowTextLengthW(hwnd) + 1};
-    wchar_t *  buf = new (std::nothrow) wchar_t [len];
+    wchar_t *buf = new (std::nothrow) wchar_t [len];
     GetWindowTextW(hwnd, buf, len);
     auto txtdouble {_wtof(buf)};
     delete[] buf;
@@ -264,12 +264,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_MOUSEMOVE:
     {
-        auto pData {get_bobwindow(hwnd)};
-        if (pData->inWindow == 1)
+        if (get_bobwindow(hwnd)->inWindow == 1)
         {
             return 0;
         }
-        pData->inWindow = 1;
+        get_bobwindow(hwnd)->inWindow = 1;
         TRACKMOUSEEVENT tme {sizeof(tme), TME_LEAVE, hwnd, 1}; //cbSize, dwFlags, hwndTrack, dwHoverTime
         TrackMouseEvent(&tme);
         SetCursor(LoadCursorW(NULL, IDC_ARROW));
