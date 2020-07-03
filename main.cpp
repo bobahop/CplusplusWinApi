@@ -52,8 +52,8 @@ void cleanup_file_open(IFileOpenDialog *pFileOpen){
 }
 
 double get_txt_dbl(HWND hwnd){
-    int len {GetWindowTextLengthW(hwnd) + 1};
-    wchar_t *buf = new (std::nothrow) wchar_t [len];
+    auto len {static_cast<std::size_t>(GetWindowTextLengthW(hwnd) + 1)};
+    wchar_t *buf = new (std::nothrow) wchar_t [len]{};
     GetWindowTextW(hwnd, buf, len);
     auto txtdouble {_wtof(buf)};
     delete[] buf;
