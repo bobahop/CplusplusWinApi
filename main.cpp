@@ -23,12 +23,12 @@ struct BobWindow
 
 enum class Ctrl : int
 {
-    Id1 = 1,
-    Id2 = 2,
-    Id3 = 3,
-    Id4 = 4,
-    Id5 = 5,
-    Id6 = 6
+    Btn1 = 1,
+    Btn2 = 2,
+    TxtDbl1 = 3,
+    TxtDbl2 = 4,
+    BtnConverge = 5,
+    TxtEpsilon = 6
 };
 
 int msg_box(HWND hWnd, LPCWSTR msg, LPCWSTR title, UINT btns = MB_OK)
@@ -134,7 +134,7 @@ void btn2_click(HWND hWnd)
     show_file_open(hWnd);
 }
 
-void btn5_click(HWND hWnd){
+void btnConverge_click(HWND hWnd){
     converged(hWnd);
 }
 
@@ -220,22 +220,22 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         auto id {(Ctrl)LOWORD(wParam)};
         switch (id)
         {
-        case Ctrl::Id1:
+        case Ctrl::Btn1:
         {
             btn1_click(hwnd);
             break;
         }
-        case Ctrl::Id2:
+        case Ctrl::Btn2:
         {
             btn2_click(hwnd);
             break;
         }
-        case Ctrl::Id5:
+        case Ctrl::BtnConverge:
         {
-            btn5_click(hwnd);
+            btnConverge_click(hwnd);
         }
         }
-        //ignore 3 and 4, which are textboxes
+        //ignore textboxes for now
         return 0;
     }
     case WM_CREATE:
@@ -243,12 +243,12 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         CREATESTRUCT *pCreate {reinterpret_cast<CREATESTRUCT *>(lParam)};
         BobWindow *pData = static_cast<BobWindow *>(pCreate->lpCreateParams);
         LONG_PTR result {SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pData)};
-        pData->txt1 = create_txtbox((LPCWSTR)L"1.01", Ctrl::Id3, 115, 100, 100, 25, hwnd);
-        pData->txt2 = create_txtbox((LPCWSTR)L"1.02", Ctrl::Id4, 315, 100, 100, 25, hwnd);
-        pData->txtEpsilon = create_txtbox((LPCWSTR)L".001", Ctrl::Id6, 505, 100, 100, 25, hwnd);
-        create_button((LPCWSTR)L"button1", Ctrl::Id1, 50, 200, 100, 25, hwnd);
-        create_button((LPCWSTR)L"button2", Ctrl::Id2, 200, 200, 100, 25, hwnd);
-        create_button((LPCWSTR)L"converge", Ctrl::Id5, 350, 200, 100, 25, hwnd);
+        pData->txt1 = create_txtbox((LPCWSTR)L"1.01", Ctrl::TxtDbl1, 115, 100, 100, 25, hwnd);
+        pData->txt2 = create_txtbox((LPCWSTR)L"1.02", Ctrl::TxtDbl2, 315, 100, 100, 25, hwnd);
+        pData->txtEpsilon = create_txtbox((LPCWSTR)L".001", Ctrl::TxtEpsilon, 505, 100, 100, 25, hwnd);
+        create_button((LPCWSTR)L"button1", Ctrl::Btn1, 50, 200, 100, 25, hwnd);
+        create_button((LPCWSTR)L"button2", Ctrl::Btn2, 200, 200, 100, 25, hwnd);
+        create_button((LPCWSTR)L"converge", Ctrl::BtnConverge, 350, 200, 100, 25, hwnd);
         return 0;
     }
     case WM_DESTROY:
